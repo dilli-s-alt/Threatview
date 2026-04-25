@@ -9,7 +9,7 @@ import Sidebar from './components/Sidebar';
 import './App.css';
 
 const riskColors = { high: '#ef4444', medium: '#f59e0b', low: '#10b981' };
-const API_BASE = import.meta.env.VITE_API_BASE || '';
+const API_BASE = import.meta.env.VITE_API_BASE || 'https://threatview-ayee.onrender.com';
 const COUNTRY_COORDINATES = {
   US: { longitude: -98, latitude: 39 }, CN: { longitude: 103, latitude: 35 }, RU: { longitude: 37, latitude: 55 },
   IN: { longitude: 78, latitude: 22 }, BR: { longitude: -51, latitude: -10 }, DE: { longitude: 10, latitude: 51 },

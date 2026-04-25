@@ -19,7 +19,14 @@ app.use(helmet({
   contentSecurityPolicy: false,
 }));
 app.use(cors({
-  origin: [process.env.FRONTEND_URL || '*', 'https://threatview-lake.vercel.app', 'http://localhost:5173'],
+  origin: (origin, callback) => {
+    // Allow all vercel apps, local dev, and the main production domain
+    if (!origin || origin.includes('vercel.app') || origin.includes('localhost')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-tier', 'x-user-id']
 }));
