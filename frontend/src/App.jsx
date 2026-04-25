@@ -9,7 +9,7 @@ import Sidebar from './components/Sidebar';
 import './App.css';
 
 const riskColors = { high: '#ef4444', medium: '#f59e0b', low: '#10b981' };
-const API_BASE = import.meta.env.VITE_API_BASE || 'https://threatview-ayee.onrender.com';
+const API_BASE = import.meta.env.VITE_API_BASE || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://threatview-ayee.onrender.com');
 const COUNTRY_COORDINATES = {
   US: { longitude: -98, latitude: 39 }, CN: { longitude: 103, latitude: 35 }, RU: { longitude: 37, latitude: 55 },
   IN: { longitude: 78, latitude: 22 }, BR: { longitude: -51, latitude: -10 }, DE: { longitude: 10, latitude: 51 },
@@ -42,6 +42,21 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [brandLoading, setBrandLoading] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
+  const [apiOnline, setApiOnline] = useState(false);
+
+  useEffect(() => {
+    const checkHealth = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/health`);
+        setApiOnline(res.ok);
+      } catch {
+        setApiOnline(false);
+      }
+    };
+    checkHealth();
+    const interval = setInterval(checkHealth, 10000);
+    return () => clearInterval(interval);
+  }, []);
   const [error, setError] = useState(null);
   const [tier, setTier] = useState(localStorage.getItem('userTier') || 'free');
   const [toast, setToast] = useState(null);
@@ -53,22 +68,44 @@ function App() {
   const [sortField, setSortField] = useState('last_seen');
   const [sortDirection, setSortDirection] = useState('desc');
 
-  const fetchStats = async () => {
+  const fetchStats = async (retryCount = 0) => {
     try {
-      const response = await fetch(`${API_BASE}/api/stats`, { headers: { 'x-tier': tier } });
+      const response = await fetch(`${API_BASE}/api/stats`, { 
+        headers: { 'x-tier': tier },
+        signal: AbortSignal.timeout(30000)
+      });
+      if (response.status === 502 && retryCount < 3) {
+        setTimeout(() => fetchStats(retryCount + 1), 5000);
+        return;
+      }
       if (!response.ok) throw new Error('Stats request failed');
       setStats(await response.json());
-    } catch (err) { setError('Unable to load dashboard stats.'); }
+      setError(null);
+    } catch (err) { 
+      if (retryCount < 2) setTimeout(() => fetchStats(retryCount + 1), 5000);
+      else setError('Unable to load dashboard stats.'); 
+    }
   };
 
-  const fetchIndicators = async (query = '') => {
+  const fetchIndicators = async (query = '', retryCount = 0) => {
     setLoading(true);
     try {
       const url = query ? `${API_BASE}/api/search?query=${encodeURIComponent(query)}` : `${API_BASE}/api/indicators?page=1&limit=50`;
-      const response = await fetch(url, { headers: { 'x-tier': tier } });
+      const response = await fetch(url, { 
+        headers: { 'x-tier': tier },
+        signal: AbortSignal.timeout(30000)
+      });
+      if (response.status === 502 && retryCount < 3) {
+        setTimeout(() => fetchIndicators(query, retryCount + 1), 5000);
+        return;
+      }
       const result = await response.json();
       setIndicators(result.results || result.data || []);
-    } catch (err) { setError('Unable to load threat indicators.'); } finally { setLoading(false); }
+      setError(null);
+    } catch (err) { 
+      if (retryCount < 2) setTimeout(() => fetchIndicators(query, retryCount + 1), 5000);
+      else setError('Unable to load threat indicators.'); 
+    } finally { setLoading(false); }
   };
 
   const fetchAlerts = async () => {
@@ -141,6 +178,12 @@ function App() {
       <header className="view-header">
         <h1>Intelligence Overview</h1>
         <div className="header-actions">
+          <div className="connection-status">
+            <span className={`dot ${!apiOnline ? 'offline' : (loading ? 'syncing' : 'online')}`}></span>
+            <span className="status-text">
+              {!apiOnline ? 'System Offline' : (loading ? 'Syncing...' : 'System Online')}
+            </span>
+          </div>
           <button className="btn btn-secondary" onClick={handleManualSync} disabled={loading}>
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
             <span>Manual Sync</span>

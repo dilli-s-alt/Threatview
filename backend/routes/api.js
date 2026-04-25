@@ -211,7 +211,8 @@ const searchIndicators = (indicators, query, isPro) => {
 const isProTier = (req) => (req.headers['x-tier'] || 'free').toString().toLowerCase() === 'pro';
 const filterByTier = (indicators, isPro) => {
   if (isPro) return indicators;
-  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  // Increase to 48 hours for better visibility on first load
+  const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
   return indicators.filter(i => new Date(i.last_seen || i.createdAt) >= cutoff);
 };
 router.get('/config/status', (req, res) => {
@@ -237,7 +238,12 @@ router.get('/stats', async (req, res) => {
   try {
     const isPro = isProTier(req);
     const indicators = await Indicator.findAll();
+    
+    // Log for debugging
+    console.log(`📊 Stats Request - Total in DB: ${indicators.length}, Tier: ${isPro ? 'PRO' : 'FREE'}`);
+    
     const indicatorsWindow = filterByTier(indicators, isPro);
+    console.log(`🪟  Window Results - Indicators in window: ${indicatorsWindow.length}`);
     const stats = await Indicator.getStats();
     const alertStats = await getAlertStats();
     const typeDistribution = Object.entries(
@@ -257,16 +263,17 @@ router.get('/stats', async (req, res) => {
       .map(([country, count]) => ({ country, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
-    const riskCounts = indicatorsWindow.reduce((acc, item) => {
-      const level = (item.risk_level || 'low').toLowerCase();
-      if (!acc[level]) acc[level] = 0;
-      acc[level] += 1;
+    const riskCounts = indicators.reduce((acc, item) => {
+      const score = item.risk_score || 0;
+      if (score >= 80) acc.high += 1;
+      else if (score >= 50) acc.medium += 1;
+      else acc.low += 1;
       return acc;
     }, { high: 0, medium: 0, low: 0 });
-    const uniqueSources = new Set(indicatorsWindow.map(i => (i.source || 'unknown').toLowerCase()));
-    const uniqueCountries = new Set(indicatorsWindow.map(i => (i.country || 'Unknown').toUpperCase()));
+    const uniqueSources = new Set(indicators.map(i => (i.source || 'unknown').toLowerCase()));
+    const uniqueCountries = new Set(indicators.map(i => (i.country || 'Unknown').toUpperCase()));
     res.json({
-      totalIndicators: indicatorsWindow.length,
+      totalIndicators: indicators.length,
       highRiskCount: riskCounts.high,
       mediumRiskCount: riskCounts.medium,
       lowRiskCount: riskCounts.low,

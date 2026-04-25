@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const DB_FILE = path.join(__dirname, process.env.DB_FILE_PATH || 'db.json');
+const DB_FILE = path.resolve(process.cwd(), process.env.DB_FILE_PATH || 'db.json');
 
 class LocalDB {
   constructor() {
@@ -30,9 +30,8 @@ class LocalDB {
       try {
         const raw = fs.readFileSync(DB_FILE, 'utf8');
         this.data = JSON.parse(raw);
-        if (process.env.VERBOSE_LOGS === 'true') {
-          console.log(`✓ Database loaded from ${DB_FILE} (${raw.length} bytes)`);
-        }
+        console.log(`✓ Database loaded from ${DB_FILE}`);
+        console.log(`📊 Indicators in memory: ${this.data.indicators?.length || 0}`);
       } catch (e) {
         console.error('⚠ Corrupted database detected. Reinitializing...');
         this.data = {

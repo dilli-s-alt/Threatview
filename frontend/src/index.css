@@ -89,3 +89,39 @@ button {
 ::-webkit-scrollbar-track { background: var(--background); }
 ::-webkit-scrollbar-thumb { background: var(--surface-hover); border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.dot.online {
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+}
+.dot.syncing {
+  background: var(--warning);
+  animation: pulse 1s infinite;
+}
+@keyframes pulse {
+  0% { opacity: 0.4; }
+  50% { opacity: 1; }
+  100% { opacity: 0.4; }
+}
+.status-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.dot.offline {
+  background: var(--danger);
+  box-shadow: 0 0 10px var(--danger);
+}

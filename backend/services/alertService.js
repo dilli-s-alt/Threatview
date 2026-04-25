@@ -216,6 +216,7 @@ module.exports = {
   getAlertStats,
   getUserAlerts,
   acknowledgeAlert,
+  resetCircuitBreaker,
   AlertEngine,
   engine
 };
