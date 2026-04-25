@@ -94,6 +94,16 @@ const startServer = async () => {
       
       // Initialize scheduler after port is open to prevent blocking startup
       initScheduler();
+      
+      // Trigger initial sync if database is empty to ensure user sees data immediately
+      const Indicator = require('../models/Indicator');
+      Indicator.count().then(count => {
+        if (count === 0) {
+          console.log('🗂️  Database empty, triggering initial ingestion...');
+          const { runFullSyncCycle } = require('../services/ingestionService');
+          runFullSyncCycle().catch(err => console.error('❌ Initial sync failed:', err));
+        }
+      });
       if (VERBOSE_LOGS) {
         console.log('✅ Ingestion scheduler initialized');
         console.log(`   API Docs: http://127.0.0.1:${PORT}/api/docs`);
