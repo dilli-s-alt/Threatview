@@ -8,6 +8,13 @@ const apiRoutes = require('../routes/api');
 const app = express();
 const PORT = process.env.PORT || 3001;
 const VERBOSE_LOGS = process.env.VERBOSE_LOGS === 'true';
+
+const REQUIRED_ENV = ['ALIENVAULT_API_KEY', 'SENDGRID_API_KEY', 'SENDGRID_FROM_EMAIL'];
+REQUIRED_ENV.forEach(key => {
+  if (!process.env[key]) {
+    console.warn(`⚠️  WARNING: Missing environment variable: ${key}`);
+  }
+});
 app.use(helmet({
   contentSecurityPolicy: false,
 }));
@@ -70,8 +77,8 @@ app.get('/api/docs', (req, res) => {
 });
 const startServer = async () => {
   try {
-    const server = app.listen(PORT, '0.0.0.0', () => {
-      console.log(`✅ Backend listening on http://0.0.0.0:${PORT}`);
+    const server = app.listen(PORT, () => {
+      console.log(`✅ Backend listening on port ${PORT}`);
       
       // Initialize scheduler after port is open to prevent blocking startup
       initScheduler();

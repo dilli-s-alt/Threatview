@@ -1,0 +1,6 @@
+node_modules/
+.env
+db.json
+db.json.tmp
+mock_emails.json
+*.log
