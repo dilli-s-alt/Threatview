@@ -390,8 +390,10 @@ function App() {
             <button className="btn btn-secondary" onClick={async () => {
               const res = await fetch(`${API_BASE}/api/test/email`, { method: 'POST', headers: { 'x-tier': tier } });
               const data = await res.json();
-              if (data.success) alert('Test email sent! Check your console/inbox.');
-              else alert('Failed to send test email.');
+              if (data.success) {
+                const mode = data.mockMode ? 'MOCK' : 'LIVE';
+                alert(`Success (${mode} Mode)! Test email processed. Check your console/inbox.`);
+              } else alert('Failed to send test email: ' + (data.error || 'Unknown error'));
             }}>Send Test Email</button>
           </div>
         </div>
