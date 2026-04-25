@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: threatview-backend
+    env: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install
+    startCommand: node src/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - fromGroup: threatview-secrets # You can create this group in Render dashboard
+
+  - type: web
+    name: threatview-frontend
+    env: static
+    rootDir: frontend
+    plan: free
+    buildCommand: npm install && npm run build
+    publishDir: dist
+    envVars:
+      - key: VITE_API_BASE
+        fromService:
+          name: threatview-backend
+          type: web
+          property: host
