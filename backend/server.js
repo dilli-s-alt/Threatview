@@ -3,8 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const { initScheduler } = require('../services/ingestionService');
-const apiRoutes = require('../routes/api');
+const { initScheduler } = require('./services/ingestionService');
+const apiRoutes = require('./routes/api');
 const app = express();
 const PORT = process.env.PORT || 3001;
 const VERBOSE_LOGS = process.env.VERBOSE_LOGS === 'true';
@@ -20,7 +20,6 @@ app.use(helmet({
 }));
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow all vercel apps, local dev, and the main production domain
     if (!origin || origin.includes('vercel.app') || origin.includes('localhost')) {
       callback(null, true);
     } else {
@@ -99,31 +98,21 @@ const startServer = async () => {
     const server = app.listen(PORT, () => {
       console.log(`✅ Backend listening on port ${PORT}`);
       
-      // Initialize scheduler after port is open to prevent blocking startup
       initScheduler();
       
-      // Trigger initial sync if database is empty to ensure user sees data immediately
-      const Indicator = require('../models/Indicator');
+      const Indicator = require('./models/Indicator');
       Indicator.count().then(count => {
         if (count === 0) {
           console.log('🗂️  Database empty, triggering initial ingestion...');
-          const { runFullSyncCycle } = require('../services/ingestionService');
+          const { runFullSyncCycle } = require('./services/ingestionService');
           runFullSyncCycle().catch(err => console.error('❌ Initial sync failed:', err));
         }
       });
-      if (VERBOSE_LOGS) {
-        console.log('✅ Ingestion scheduler initialized');
-        console.log(`   API Docs: http://127.0.0.1:${PORT}/api/docs`);
-        console.log(`   Health: http://127.0.0.1:${PORT}/health`);
-        console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
-        console.log(`   Scheduler: ${process.env.ENABLE_SCHEDULED_INGESTION !== 'false' ? 'ENABLED' : 'DISABLED'}`);
-        console.log(`   Email Alerts: ${process.env.ENABLE_EMAIL_ALERTS !== 'false' ? 'ENABLED' : 'DISABLED'}`);
-      }
     });
 
     server.on('error', (e) => {
       if (e.code === 'EADDRINUSE') {
-        console.error(`❌ Port ${PORT} is already in use. Please kill any existing processes on this port.`);
+        console.error(`❌ Port ${PORT} is already in use.`);
         process.exit(1);
       } else {
         console.error('❌ Server error:', e);
