@@ -1,0 +1,9 @@
+{
+  "ignore": [
+    "db.json",
+    "db.json.tmp",
+    "*.json",
+    "*.test.js",
+    "node_modules"
+  ]
+}
