@@ -19,15 +19,27 @@ app.use(helmet({
   contentSecurityPolicy: false,
 }));
 app.use(cors({
-  origin: ['https://threatview-lake.vercel.app', 'http://localhost:5173'],
+  origin: [process.env.FRONTEND_URL || '*', 'https://threatview-lake.vercel.app', 'http://localhost:5173'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-tier', 'x-user-id']
 }));
+
 if (VERBOSE_LOGS) {
   app.use(morgan('dev'));
 }
+
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'ThreatView API is Online', 
+    docs: '/api/docs',
+    health: '/health',
+    timestamp: new Date().toISOString() 
+  });
+});
+
 app.use(express.json());
 app.use('/api', apiRoutes);
+
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
