@@ -11,7 +11,11 @@ const VERBOSE_LOGS = process.env.VERBOSE_LOGS === 'true';
 app.use(helmet({
   contentSecurityPolicy: false,
 }));
-app.use(cors());
+app.use(cors({
+  origin: ['https://threatview-lake.vercel.app', 'http://localhost:5173'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-tier', 'x-user-id']
+}));
 if (VERBOSE_LOGS) {
   app.use(morgan('dev'));
 }
