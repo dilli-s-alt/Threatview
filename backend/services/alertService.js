@@ -112,6 +112,15 @@ class AlertEngine {
   }
 }
 const engine = new AlertEngine();
+let emailCircuitBreaker = {
+  active: false,
+  reason: null,
+  timestamp: null
+};
+
+const resetCircuitBreaker = () => {
+  emailCircuitBreaker = { active: false, reason: null, timestamp: null };
+};
 const checkAlerts = async (newIndicator, users = null) => {
   const userList = users || [defaultUserProfile];
   console.log(`\n🔔 [ALERT ENGINE] Processing indicator: ${newIndicator.indicator}`);
@@ -128,22 +137,38 @@ const checkAlerts = async (newIndicator, users = null) => {
     for (const alert of matchingAlerts) {
       console.log(`  🚨 [${alert.type}] ${alert.severity} - ${alert.reason}`);
       let deliveryMetadata = { method: 'email', status: 'skipped' };
+      
       if (process.env.ENABLE_EMAIL_ALERTS !== 'false') {
-        const emailResult = await EmailService.sendAlertNotification(
-          user,
-          newIndicator,
-          alert.reason
-        );
-        deliveryMetadata = {
-          method: 'email',
-          status: emailResult.success ? (emailResult.mockMode ? 'mocked' : 'sent') : 'failed',
-          error: emailResult.error || null,
-          timestamp: new Date().toISOString()
-        };
-        if (emailResult.success || emailResult.mockMode) {
-          console.log(`  ✉️  Notification ${emailResult.mockMode ? 'MOCKED' : 'SENT'} to ${user.email}`);
+        if (emailCircuitBreaker.active) {
+          console.log(`  🚫 Email delivery paused: ${emailCircuitBreaker.reason}`);
+          deliveryMetadata.status = 'paused_by_limit';
         } else {
-          console.error(`  ❌ Failed to send email: ${emailResult.error}`);
+          const emailResult = await EmailService.sendAlertNotification(
+            user,
+            newIndicator,
+            alert.reason
+          );
+          
+          deliveryMetadata = {
+            method: 'email',
+            status: emailResult.success ? (emailResult.mockMode ? 'mocked' : 'sent') : 'failed',
+            error: emailResult.error || null,
+            timestamp: new Date().toISOString()
+          };
+
+          if (emailResult.success || emailResult.mockMode) {
+            console.log(`  ✉️  Notification ${emailResult.mockMode ? 'MOCKED' : 'SENT'} to ${user.email}`);
+          } else {
+            console.error(`  ❌ Failed to send email: ${emailResult.error}`);
+            if (emailResult.error && (emailResult.error.includes('messaging limits') || emailResult.error.includes('Forbidden'))) {
+              emailCircuitBreaker = {
+                active: true,
+                reason: 'Messaging limits exceeded',
+                timestamp: new Date()
+              };
+              console.warn('  ⚠️ CIRCUIT BREAKER ACTIVATED: Pausing further emails for this cycle.');
+            }
+          }
         }
       }
       await Indicator.logAlert(newIndicator, user, alert.reason, deliveryMetadata);

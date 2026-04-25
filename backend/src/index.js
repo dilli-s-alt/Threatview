@@ -66,8 +66,8 @@ app.get('/api/docs', (req, res) => {
 });
 const startServer = async () => {
   try {
-    const server = app.listen(PORT, '127.0.0.1', () => {
-      console.log(`✅ Backend listening on http://127.0.0.1:${PORT}`);
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`✅ Backend listening on http://0.0.0.0:${PORT}`);
       
       // Initialize scheduler after port is open to prevent blocking startup
       initScheduler();

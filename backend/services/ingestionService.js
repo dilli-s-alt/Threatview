@@ -2,7 +2,7 @@ const axios = require('axios');
 const cron = require('node-cron');
 const Indicator = require('../models/Indicator');
 const _ = require('lodash');
-const { checkAlerts } = require('./alertService');
+const { checkAlerts, resetCircuitBreaker } = require('./alertService');
 const ReportingService = require('./reportingService');
 const QUIET_LOGS = process.env.VERBOSE_LOGS !== 'true';
 const log = (...args) => { if (!QUIET_LOGS) console.log(...args); }
@@ -420,6 +420,7 @@ const performMaintenance = async () => {
   }
 };
 const runFullSyncCycle = async () => {
+  resetCircuitBreaker();
   log('\n🌍 Starting ThreatView Ingestion Cycle...');
   const results = [];
   results.push(await syncOTX());
