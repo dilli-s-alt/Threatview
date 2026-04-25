@@ -15,8 +15,10 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'framer-motion', 'recharts', 'lucide-react', 'd3-geo', 'topojson-client'],
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
         },
       },
     },
